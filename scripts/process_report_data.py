@@ -177,7 +177,7 @@ def create_geocoder(city_file):
 
     for row in reader:
         row_key = (
-            row["subdivision_1_iso_code"].upper(),
+            row["country_name"].lower(),
             row["city_name"].lower(),
         )
 
@@ -189,6 +189,8 @@ def create_geocoder(city_file):
                 float(row["longitude"]),
                 int(row["num_blocks"]),
             )
+            print(row_key)
+            print(geocoder_hash[row_key])
 
     # Bind the geocoder hash to the geocoder template.
     return curry(_geocoder_template)(geocoder_hash)
@@ -259,6 +261,13 @@ def main(raw_report_file, city_file, output_file):
             else report["state"]
         )
 
+        # Add state, if there was no state and something in city names brackets
+        #print(report['state'])
+        if report['state'] is None and report['city'] is not None:
+            m = re.search(r'(?<=\().*?(?=\))', report['city'])
+            if m:
+                report['state'] = m.group()
+
         # Clean the city.
         report["city"] = (
             clean_city(report["city"], report["state"])
@@ -268,7 +277,8 @@ def main(raw_report_file, city_file, output_file):
 
         # Geocode the report.
         if report["state"] and report["city"]:
-            city_lat, city_lon = geocode(report["state"], report["city"])
+            print("try to geocode")
+            city_lat, city_lon = geocode(report["state"].lower(), report["city"].lower())
             report["city_latitude"] = city_lat
             report["city_longitude"] = city_lon
         else:
