@@ -5,6 +5,7 @@ import re
 from csv import DictReader, DictWriter
 from datetime import datetime, timedelta
 from toolz import curry, get_in
+from pprint import pprint
 
 REPORT_DATE_TIME = "%m/%d/%y %H:%M"
 SHORT_REPORT_DATE_TIME = "%m/%d/%y"
@@ -85,7 +86,7 @@ def clean_shape(shape):
     if new_shape == "triangular":
         new_shape = "triangle"
     if new_shape == "changed":
-        new_shape == "changing"
+        new_shape = "changing"
 
     return new_shape
 
@@ -177,7 +178,7 @@ def create_geocoder(city_file):
 
     for row in reader:
         row_key = (
-            row["country_name"].lower(),
+            row["country_iso_code"].lower(),
             row["city_name"].lower(),
         )
 
@@ -229,9 +230,8 @@ def main(raw_report_file, city_file, output_file):
     )
 
     writer.writeheader()
-
+    n = 0
     for report_str in raw_report_file:
-
         report = json.loads(report_str)
 
         try:
@@ -261,13 +261,6 @@ def main(raw_report_file, city_file, output_file):
             else report["state"]
         )
 
-        # Add state, if there was no state and something in city names brackets
-        #print(report['state'])
-        if report['state'] is None and report['city'] is not None:
-            m = re.search(r'(?<=\().*?(?=\))', report['city'])
-            if m:
-                report['state'] = m.group()
-
         # Clean the city.
         report["city"] = (
             clean_city(report["city"], report["state"])
@@ -277,14 +270,14 @@ def main(raw_report_file, city_file, output_file):
 
         # Geocode the report.
         if report["state"] and report["city"]:
-            print("try to geocode")
             city_lat, city_lon = geocode(report["state"].lower(), report["city"].lower())
             report["city_latitude"] = city_lat
             report["city_longitude"] = city_lon
         else:
             report["city_latitude"] = None
             report["city_longitude"] = None
-
+        if report['state'] == "DE":
+            pprint(report)
         writer.writerow(report)
 
 
